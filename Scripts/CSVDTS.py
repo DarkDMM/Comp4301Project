@@ -66,7 +66,7 @@ class DataSet:
                 #get the label of the image
                 imLabel = labels[i]
 
-                ManiitemfestDict = {"Width":imWidth, "Height": imHeight,"Label":imLabel,"Path":imgPath}
+                ManifestDict = {"Width":imWidth, "Height": imHeight,"Label":imLabel,"Path":imgPath}
 
                 #write the image to the dataset
                 cv.imwrite(imgPath, data[i])
@@ -79,21 +79,23 @@ class DataSet:
     def __init__(self, path, name, autoOverwrite = None):
         pathProposal = os.path.join(path, name)
         #check propsed path and ask for overwrite verification
+
         if(os.path.exists(pathProposal)):
             if(autoOverwrite == None):
+
                 user_input = input("The specified file already exists, overwrite? (y/n): ").upper()
             elif(autoOverwrite):
+
                 user_input = 'Y'
             elif(not autoOverwrite):
+
                 user_input = 'N'
 
             #user decides to overwrite, shutil rms the diretory and process continues
             if(user_input == "Y"):
+
                 shutil.rmtree(pathProposal)
-                os.mkdir(pathProposal)
-                os.mkdir(os.path.join(pathProposal, "Data"))
-                self.DataPath = os.path.join(pathProposal, "Data")
-                self.ManifestPath = os.path.join(pathProposal, (name + "_Manifest.csv"))
+                self.createDataFile(pathProposal, name)
                 self.size = 0
 
             #user decides not to overwrite, process is exited
@@ -103,8 +105,17 @@ class DataSet:
                 self.ManifestPath = os.path.join(pathProposal, (name + "_Manifest.csv"))
                 self.size = len((pd.read_csv(self.ManifestPath)).values)
         
-        
-
+        else:
+            self.createDataFile(pathProposal, name)
+            self.size = 0
+    
+    def createDataFile(self, pathProposal, name):
+        os.mkdir(pathProposal)
+        os.mkdir(os.path.join(pathProposal, "Data"))
+        self.DataPath = os.path.join(pathProposal, "Data")
+        self.ManifestPath = os.path.join(pathProposal, (name + "_Manifest.csv"))
+        csvLog = open(self.ManifestPath, 'a') 
+        csvLog.close()
     def extend(self, data, labels):
         """
         Extends the dataset with the provided data and labels
@@ -133,28 +144,47 @@ class DataSet:
 
 
     def dataValidation(self, data, labels):
-        if len(data != len(labels)):
+        if len(data) != len(labels):
             print("Dataset Creation Failed, dataset and label lengths differ")
             return False
         
-    def loadData(self, batchSize = -1):
+    def loadData(self, inputSize ,batchSize = -1):
         if batchSize == -1:
             batchSize - self.size
         
-        #create a list to store the output
-        DataItems = []
         
         itemPaths = self.getManifest().drop("Width", 1).drop("Height", 1)
-        for item in itemPaths.values:
-            DataItems.append((cv.imread(str(item[1])) , item[0]))
-        
-        npItems = np.array(DataItems, dtype = 'object')
-        np.random.shuffle(npItems)
-        Cutoff = self.size // 10
-        Test = npItems[0:Cutoff]
-        Train = npItems[Cutoff:]
+        itemPaths = itemPaths.sample(frac = 1)
+        #Item paths is no a randomly Shuffled dataframe
+        #remove the first 10% of items as a vlaidation set
+        cutoff = self.size // 10
 
-        return Train[0:, 0], Train[0:,1], Test[0:, 0], Test[0:,1]
+        test_img = np.zeros((cutoff, inputSize[0], inputSize[1], 3), dtype = "float32")
+        test_lbl = np.zeros((cutoff), dtype = 'float32')
+        for item in range(cutoff):
+            dataPath = itemPaths.values[item][1]
+            newImg = cv.imread(dataPath)
+            if newImg.shape != inputSize:
+                cv.resize(newImg,(inputSize))
+            test_img[item] = newImg
+            test_lbl[item] = itemPaths.values[item][0]
+        
+        train_img = np.zeros(((self.size - cutoff), inputSize[0], inputSize[1], 3), dtype = "float32")
+        train_lbl = np.zeros((self.size - cutoff), dtype = 'float32')
+        for item in range(cutoff, self.size):
+            item = item - cutoff
+            dataPath = itemPaths.values[item][1]
+            newImg = cv.imread(dataPath)
+            if newImg.shape != inputSize:
+                cv.resize(newImg,(inputSize))
+            train_img[item] = newImg
+            train_lbl[item] = itemPaths.values[item][0]
+
+        
+        
+
+        return train_img, train_lbl ,test_img, test_lbl
+            
             
 
 

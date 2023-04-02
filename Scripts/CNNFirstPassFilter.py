@@ -24,13 +24,12 @@ def TrainFPSC(dataset):
     #FPSC.summary()
 
     FPSC.compile(optimizer='adam',
-                 loss = tf.keras.losses.SparseCategoricalCrosse
-                 ntropy(from_logits=True),
+                 loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                  metrics=['accuracy'])
 
-    (train_img, train_lbl, test_img, test_lbl) = dataset.loadData()
-    train_img = tf.convert_to_tensor(train_img.astype('float32'))
-    train_lbl = tf.convert_to_tensor(train_lbl.astype('float32'))
-    test_img = tf.convert_to_tensor(test_img.astype('float32'))
-    test_lbl = tf.convert_to_tensor(test_lbl.astype('float32'))
+    (train_img, train_lbl, test_img, test_lbl) = dataset.loadData((64,64,3))
+    train_img = tf.convert_to_tensor(train_img)
+    train_lbl = tf.convert_to_tensor(train_lbl)
+    test_img = tf.convert_to_tensor(test_img)
+    test_lbl = tf.convert_to_tensor(test_lbl)
     history = FPSC.fit(train_img, train_lbl, epochs = 30, validation_data = (test_img, test_lbl))

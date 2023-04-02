@@ -87,7 +87,7 @@ def LibraryLocalization(inputImage, fastMode, Debug):
         ImgSegment = im.copy()
         x,y,w,h = rect
         ImgSegment = ImgSegment[y:y+h, x:x+w]
-        SegmentedSet.append(ImgSegment)
+        SegmentedSet.append((ImgSegment, rect))
 
 
 
