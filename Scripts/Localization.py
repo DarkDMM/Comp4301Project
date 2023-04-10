@@ -27,8 +27,9 @@ def LibraryLocalization(inputImage, fastMode, Debug):
     #read the input image
     im = cv2.imread(inputImage)
     #rezise the image
-    newHeight = 200
-    newWidth = int(im.shape[1]*200/im.shape[0])
+    scaleFactors = (0.5, 0.5)
+    newWidth = int(im.shape[0] * scaleFactors[0])
+    newHeight = int(im.shape[1] * scaleFactors[1])
     im = cv2.resize(im, (newWidth, newHeight))
 
     #create Selective Search Segmentation object using defualt parameters
@@ -86,7 +87,7 @@ def LibraryLocalization(inputImage, fastMode, Debug):
     for i, rect in enumerate(rects):
         ImgSegment = im.copy()
         x,y,w,h = rect
-        ImgSegment = ImgSegment[y:y+h, x:x+w]
+        ImgSegment = cv2.resize(ImgSegment[y:y+h, x:x+w], (64,64))
         SegmentedSet.append((ImgSegment, rect))
 
 

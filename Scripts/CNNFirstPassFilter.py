@@ -4,6 +4,8 @@
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
+from Localization import LibraryLocalization
+import cv2
 
 def TrainFPSC(dataset):
 
@@ -19,7 +21,8 @@ def TrainFPSC(dataset):
 
     FPSC.add(tf.keras.layers.Flatten())
     FPSC.add(tf.keras.layers.Dense(64, activation='relu'))
-    FPSC.add(tf.keras.layers.Dense(10))
+    FPSC.add(tf.keras.layers.Dense(2))
+    FPSC.add(tf.keras.layers.Softmax())
 
     #FPSC.summary()
 
@@ -33,3 +36,31 @@ def TrainFPSC(dataset):
     test_img = tf.convert_to_tensor(test_img)
     test_lbl = tf.convert_to_tensor(test_lbl)
     history = FPSC.fit(train_img, train_lbl, epochs = 30, validation_data = (test_img, test_lbl))
+    FPSC.save("Models\\FPSC")
+    return FPSC
+
+def imgProcess(Image, TrainedModel = None):
+    if(TrainedModel == None):
+        #attempt to load a trained FPSC model if a model is not specified for this function
+        Model = tf.keras.models.load_model("Models\\FPSC")
+
+    SegmentedData = LibraryLocalization(Image, True, False)
+
+    ImageWithBoxes = cv2.imread(Image).copy()
+    for item in SegmentedData:
+        img = np.expand_dims(item[0], axis=0)
+        Lbl = np.array(Model(img, training = False)).argmax()
+        if(Lbl == 1):
+            x,y,w,h = item[1]
+            x = x * 2
+            w = w * 2
+            y = y * 2
+            h = h * 2
+            cv2.rectangle(ImageWithBoxes, (x,y), (x+w, y+h), (0, 255, 0), 1, cv2.LINE_AA)
+    while True:
+        cv2.imshow("Localized Signs",ImageWithBoxes)
+
+        k = cv2.waitKey(0) & 0xff
+        #q is pressed
+        if k == 113:
+            break
